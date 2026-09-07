@@ -35,7 +35,9 @@ public final class ExportConfig {
     }
 
     public static ExportConfig fromEnvironment() {
-        String instrumentName = env("INSTRUMENT", "EURUSD").trim().toUpperCase();
+        String instrumentName =
+                env("INSTRUMENT", "EURUSD").trim().toUpperCase();
+
         Instrument instrument;
 
         try {
@@ -45,21 +47,29 @@ public final class ExportConfig {
                     "Unknown Dukascopy Instrument: " + instrumentName, e);
         }
 
-        Instant from = parseGmt("FROM", "2010-01-01T00:00:00Z");
-        Instant to = parseGmt("TO", "2020-01-01T00:00:00Z");
+        Instant from =
+                parseUtc("FROM", "2020-01-01T00:00:00Z");
+
+        Instant to =
+                parseUtc("TO", "2020-01-05T00:00:00Z");
 
         if (!from.isBefore(to)) {
-            throw new IllegalArgumentException("FROM must be earlier than TO.");
+            throw new IllegalArgumentException(
+                    "FROM must be earlier than TO.");
         }
 
-        long chunkHours = positiveLong("CHUNK_HOURS", 6);
-        long pauseMs = nonNegativeLong("PAUSE_MS", 500);
-        long maxRuntimeMinutes = positiveLong("MAX_RUNTIME_MINUTES", 350);
+        long chunkHours =
+                positiveLong("CHUNK_HOURS", 6);
 
-        String outputFile = env(
-                "OUTPUT_FILE",
-                "output/" + instrumentName + "_ticks.csv"
-        );
+        long pauseMs =
+                nonNegativeLong("PAUSE_MS", 500);
+
+        long maxRuntimeMinutes =
+                positiveLong("MAX_RUNTIME_MINUTES", 350);
+
+        String outputFile =
+                env("OUTPUT_FILE",
+                        "output/" + instrumentName + "_ticks.csv");
 
         return new ExportConfig(
                 instrument,
@@ -76,37 +86,65 @@ public final class ExportConfig {
         return Duration.ofHours(chunkHours).toMillis();
     }
 
-    private static Instant parseGmt(String name, String defaultValue) {
-        String value = env(name, defaultValue).trim();
+    private static Instant parseUtc(
+            String name,
+            String defaultValue) {
+
+        String value =
+                env(name, defaultValue).trim();
 
         try {
-            // Recommended format: 2020-01-01T00:00:00Z
             return Instant.parse(value);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException(
-                    name + " must use ISO-8601 UTC format, e.g. 2020-01-01T00:00:00Z",
-                    e);
+                    name +
+                    " must use ISO-8601 UTC format, e.g. " +
+                    "2020-01-01T00:00:00Z",
+                    e
+            );
         }
     }
 
-    private static long positiveLong(String name, long defaultValue) {
-        long value = Long.parseLong(env(name, Long.toString(defaultValue)));
+    private static long positiveLong(
+            String name,
+            long defaultValue) {
+
+        long value =
+                Long.parseLong(
+                        env(name, Long.toString(defaultValue)));
+
         if (value <= 0) {
-            throw new IllegalArgumentException(name + " must be > 0.");
+            throw new IllegalArgumentException(
+                    name + " must be > 0.");
         }
+
         return value;
     }
 
-    private static long nonNegativeLong(String name, long defaultValue) {
-        long value = Long.parseLong(env(name, Long.toString(defaultValue)));
+    private static long nonNegativeLong(
+            String name,
+            long defaultValue) {
+
+        long value =
+                Long.parseLong(
+                        env(name, Long.toString(defaultValue)));
+
         if (value < 0) {
-            throw new IllegalArgumentException(name + " must be >= 0.");
+            throw new IllegalArgumentException(
+                    name + " must be >= 0.");
         }
+
         return value;
     }
 
-    private static String env(String name, String defaultValue) {
+    private static String env(
+            String name,
+            String defaultValue) {
+
         String value = System.getenv(name);
-        return value == null || value.isBlank() ? defaultValue : value;
+
+        return value == null || value.isBlank()
+                ? defaultValue
+                : value;
     }
 }
