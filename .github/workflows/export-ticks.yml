@@ -1,0 +1,103 @@
+name: Export Dukascopy Tick Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      instrument:
+        description: "Dukascopy instrument, e.g. EURUSD"
+        required: true
+        default: "EURUSD"
+
+      from:
+        description: "Start time in UTC, e.g. 2010-01-01T00:00:00Z"
+        required: true
+        default: "2010-01-01T00:00:00Z"
+
+      to:
+        description: "End time in UTC, e.g. 2020-01-01T00:00:00Z"
+        required: true
+        default: "2020-01-01T00:00:00Z"
+
+      chunk_hours:
+        description: "Hours per Dukascopy request"
+        required: true
+        default: "6"
+
+      max_runtime_minutes:
+        description: "Maximum workflow runtime for the Java exporter"
+        required: true
+        default: "350"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    timeout-minutes: 360
+
+    env:
+      JFOREX_USERNAME: ${{ secrets.JFOREX_USERNAME }}
+      JFOREX_PASSWORD: ${{ secrets.JFOREX_PASSWORD }}
+
+      INSTRUMENT: ${{ inputs.instrument }}
+      FROM: ${{ inputs.from }}
+      TO: ${{ inputs.to }}
+      CHUNK_HOURS: ${{ inputs.chunk_hours }}
+      MAX_RUNTIME_MINUTES: ${{ inputs.max_runtime_minutes }}
+
+      OUTPUT_FILE: output/${{ inputs.instrument }}_ticks.csv
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: maven
+
+      - name: Validate credentials
+        shell: bash
+        run: |
+          if [ -z "$JFOREX_USERNAME" ]; then
+            echo "JFOREX_USERNAME secret is missing."
+            exit 1
+          fi
+
+          if [ -z "$JFOREX_PASSWORD" ]; then
+            echo "JFOREX_PASSWORD secret is missing."
+            exit 1
+          fi
+
+      - name: Build
+        run: mvn -B -DskipTests package
+
+      - name: Run tick exporter
+        run: |
+          java -jar target/jforex-tick-exporter-1.0.0.jar
+
+      - name: Show output
+        shell: bash
+        run: |
+          ls -lh output/
+          wc -l output/*.csv
+
+      - name: Compress CSV
+        shell: bash
+        run: |
+          cd output
+          zip -9 "${INSTRUMENT}_ticks.zip" "${INSTRUMENT}_ticks.csv"
+
+      - name: Upload CSV and ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.instrument }}-ticks-${{ inputs.from }}-to-${{ inputs.to }}
+          path: |
+            output/*.csv
+            output/*.zip
+          if-no-files-found: error
+          retention-days: 7
