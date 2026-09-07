@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.esmaeil</groupId>
     <artifactId>jforex-tick-exporter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <properties>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jforex.api.version>2.13.99</jforex.api.version>
+        <jforex.client.version>2.13.99</jforex.client.version>
     </properties>
 
     <repositories>
@@ -23,11 +23,21 @@
     </repositories>
 
     <dependencies>
+        <!-- Public JForex API -->
         <dependency>
             <groupId>com.dukascopy.api</groupId>
             <artifactId>JForex-API</artifactId>
             <version>${jforex.api.version}</version>
         </dependency>
+
+        <!-- IMPORTANT:
+             Client implementation containing DCClientImpl / ClientFactory runtime -->
+        <dependency>
+            <groupId>com.dukascopy.api</groupId>
+            <artifactId>JForex-API-Standalone</artifactId>
+            <version>${jforex.client.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
@@ -50,9 +60,12 @@
                 <executions>
                     <execution>
                         <phase>package</phase>
-                        <goals><goal>shade</goal></goals>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.esmaeil.jforex.Main</mainClass>
