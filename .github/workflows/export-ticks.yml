@@ -9,14 +9,14 @@ on:
         default: "EURUSD"
 
       from:
-        description: "Start time in UTC, e.g. 2010-01-01T00:00:00Z"
-        required: true
-        default: "2010-01-01T00:00:00Z"
-
-      to:
-        description: "End time in UTC, e.g. 2020-01-01T00:00:00Z"
+        description: "Start time UTC, e.g. 2020-01-01T00:00:00Z"
         required: true
         default: "2020-01-01T00:00:00Z"
+
+      to:
+        description: "End time UTC, e.g. 2020-01-05T00:00:00Z"
+        required: true
+        default: "2020-01-05T00:00:00Z"
 
       chunk_hours:
         description: "Hours per Dukascopy request"
@@ -24,7 +24,7 @@ on:
         default: "6"
 
       max_runtime_minutes:
-        description: "Maximum workflow runtime for the Java exporter"
+        description: "Maximum Java exporter runtime"
         required: true
         default: "350"
 
@@ -73,12 +73,21 @@ jobs:
             exit 1
           fi
 
-      - name: Build
-        run: mvn -B -DskipTests package
+      - name: Build with JForex runtime
+        run: |
+          mvn -B -DskipTests clean package
+
+      - name: Verify shaded JAR
+        shell: bash
+        run: |
+          test -f target/jforex-tick-exporter-1.0.1.jar
+          jar tf target/jforex-tick-exporter-1.0.1.jar \
+            | grep -q "com/dukascopy/api/impl/connect/DCClientImpl.class"
+          echo "DCClientImpl is present in the executable JAR."
 
       - name: Run tick exporter
         run: |
-          java -jar target/jforex-tick-exporter-1.0.0.jar
+          java -jar target/jforex-tick-exporter-1.0.1.jar
 
       - name: Show output
         shell: bash
