@@ -3,7 +3,6 @@ package com.esmaeil.jforex;
 import com.dukascopy.api.*;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,66 +28,96 @@ public final class TickExporter implements IStrategy {
         history = context.getHistory();
         console = context.getConsole();
 
-        Path output = Paths.get(config.outputFile);
+        Path output =
+                Paths.get(config.outputFile);
 
         try {
             Path parent = output.getParent();
+
             if (parent != null) {
                 Files.createDirectories(parent);
             }
 
             export(output);
+
         } catch (Exception e) {
-            console.getErr().println("EXPORT ERROR: " + e);
+            console.getErr().println(
+                    "EXPORT ERROR: " + e
+            );
             e.printStackTrace();
+
         } finally {
             context.stop();
         }
     }
 
-    private void export(Path output) throws Exception {
-        SimpleDateFormat fmt =
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-        fmt.setTimeZone(TimeZone.getTimeZone("GMT"));
+    private void export(Path output)
+            throws Exception {
 
-        long from = config.from.toEpochMilli();
-        long to = config.to.toEpochMilli();
-        long chunkMs = config.chunkMillis();
+        SimpleDateFormat fmt =
+                new SimpleDateFormat(
+                        "yyyy-MM-dd HH:mm:ss.SSS");
+
+        fmt.setTimeZone(
+                TimeZone.getTimeZone("GMT"));
+
+        long from =
+                config.from.toEpochMilli();
+
+        long to =
+                config.to.toEpochMilli();
+
+        long chunkMs =
+                config.chunkMillis();
 
         long cursor = from;
         long lastTickTime = -1;
         long total = 0;
 
-        System.out.println("Writing: " + output.toAbsolutePath());
+        System.out.println(
+                "Writing: " +
+                output.toAbsolutePath()
+        );
 
-        try (BufferedWriter out = Files.newBufferedWriter(
-                output,
-                StandardCharsets.UTF_8)) {
+        try (BufferedWriter out =
+                     Files.newBufferedWriter(
+                             output,
+                             StandardCharsets.UTF_8)) {
 
-            out.write("GmtTime,Bid,Ask,BidVolume,AskVolume");
+            out.write(
+                    "GmtTime,Bid,Ask,BidVolume,AskVolume"
+            );
             out.newLine();
 
             while (cursor < to) {
-                long chunkEnd = Math.min(cursor + chunkMs, to);
+
+                long chunkEnd =
+                        Math.min(
+                                cursor + chunkMs,
+                                to
+                        );
 
                 System.out.printf(
                         "Requesting %s -> %s%n",
-                        fmt.format(new Date(cursor)),
-                        fmt.format(new Date(chunkEnd))
+                        fmt.format(
+                                new Date(cursor)),
+                        fmt.format(
+                                new Date(chunkEnd))
                 );
 
-                // Dukascopy's getTicks interval endpoints are inclusive.
-                // lastTickTime prevents duplicates at chunk boundaries.
-                List<ITick> ticks = history.getTicks(
-                        config.instrument,
-                        cursor,
-                        chunkEnd
-                );
+                List<ITick> ticks =
+                        history.getTicks(
+                                config.instrument,
+                                cursor,
+                                chunkEnd
+                        );
 
                 long chunkWritten = 0;
 
                 for (ITick tick : ticks) {
-                    long time = tick.getTime();
+
+                    long time =
+                            tick.getTime();
 
                     if (time <= lastTickTime) {
                         continue;
@@ -96,15 +125,30 @@ public final class TickExporter implements IStrategy {
 
                     lastTickTime = time;
 
-                    out.write(fmt.format(new Date(time)));
+                    out.write(
+                            fmt.format(
+                                    new Date(time))
+                    );
                     out.write(',');
-                    out.write(Double.toString(tick.getBid()));
+                    out.write(
+                            Double.toString(
+                                    tick.getBid())
+                    );
                     out.write(',');
-                    out.write(Double.toString(tick.getAsk()));
+                    out.write(
+                            Double.toString(
+                                    tick.getAsk())
+                    );
                     out.write(',');
-                    out.write(Double.toString(tick.getBidVolume()));
+                    out.write(
+                            Double.toString(
+                                    tick.getBidVolume())
+                    );
                     out.write(',');
-                    out.write(Double.toString(tick.getAskVolume()));
+                    out.write(
+                            Double.toString(
+                                    tick.getAskVolume())
+                    );
                     out.newLine();
 
                     total++;
@@ -129,28 +173,41 @@ public final class TickExporter implements IStrategy {
         }
 
         System.out.println(
-                "FINISHED. total ticks written = " + total
+                "FINISHED. total ticks written = " +
+                total
         );
     }
 
     @Override
-    public void onTick(Instrument instrument, ITick tick) throws JFException {}
+    public void onTick(
+            Instrument instrument,
+            ITick tick)
+            throws JFException {}
 
     @Override
     public void onBar(
             Instrument instrument,
             Period period,
             IBar askBar,
-            IBar bidBar) throws JFException {}
+            IBar bidBar)
+            throws JFException {}
 
     @Override
-    public void onMessage(IMessage message) throws JFException {}
+    public void onMessage(
+            IMessage message)
+            throws JFException {}
 
     @Override
-    public void onAccount(IAccount account) throws JFException {}
+    public void onAccount(
+            IAccount account)
+            throws JFException {}
 
     @Override
-    public void onStop() throws JFException {
-        System.out.println("TickExporter onStop()");
+    public void onStop()
+            throws JFException {
+
+        System.out.println(
+                "TickExporter onStop()"
+        );
     }
 }
