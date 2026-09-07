@@ -25,7 +25,7 @@ public final class Main {
         ExportConfig config = ExportConfig.fromEnvironment();
 
         System.out.println("========================================");
-        System.out.println("JForex Tick Exporter");
+        System.out.println("JForex Tick Exporter 1.0.1");
         System.out.println("Instrument : " + config.instrument);
         System.out.println("From (GMT) : " + config.from);
         System.out.println("To   (GMT) : " + config.to);
@@ -35,7 +35,7 @@ public final class Main {
 
         final IClient client = ClientFactory.getDefaultInstance();
         final CountDownLatch finished = new CountDownLatch(1);
-        final AtomicBoolean success = new AtomicBoolean(false);
+        final AtomicBoolean strategyStopped = new AtomicBoolean(false);
 
         client.setSystemListener(new ISystemListener() {
             @Override
@@ -46,7 +46,7 @@ public final class Main {
             @Override
             public void onStop(long processId) {
                 System.out.println("Strategy stopped. processId=" + processId);
-                success.set(true);
+                strategyStopped.set(true);
                 finished.countDown();
             }
 
@@ -61,22 +61,26 @@ public final class Main {
             }
         });
 
-        System.out.println("Connecting...");
+        System.out.println("Connecting to Dukascopy...");
         client.connect(DEMO_JNLP, username, password);
 
-        waitForConnection(client, 120);
+        waitForConnection(client, 180);
 
-        Set<Instrument> instruments = Collections.singleton(config.instrument);
+        Set<Instrument> instruments =
+                Collections.singleton(config.instrument);
+
         System.out.println("Subscribing to " + config.instrument + "...");
         client.setSubscribedInstruments(instruments);
 
-        // Dukascopy documents subscription as asynchronous.
         Thread.sleep(5000);
 
         System.out.println("Starting exporter strategy...");
         client.startStrategy(new TickExporter(config));
 
-        boolean completed = finished.await(config.maxRuntimeMinutes, TimeUnit.MINUTES);
+        boolean completed = finished.await(
+                config.maxRuntimeMinutes,
+                TimeUnit.MINUTES
+        );
 
         if (!completed) {
             System.err.println("ERROR: Maximum runtime exceeded.");
@@ -90,34 +94,40 @@ public final class Main {
             client.disconnect();
         } catch (Exception ignored) {}
 
-        if (!success.get()) {
+        if (!strategyStopped.get()) {
             System.exit(3);
         }
 
         System.out.println("Export completed successfully.");
     }
 
-    private static void waitForConnection(IClient client, int timeoutSeconds)
-            throws InterruptedException {
+    private static void waitForConnection(
+            IClient client,
+            int timeoutSeconds) throws InterruptedException {
 
-        long deadline = System.currentTimeMillis()
-                + timeoutSeconds * 1000L;
+        long deadline =
+                System.currentTimeMillis() + timeoutSeconds * 1000L;
 
         while (!client.isConnected()) {
             if (System.currentTimeMillis() >= deadline) {
                 throw new IllegalStateException(
-                        "Timed out while waiting for Dukascopy connection.");
+                        "Timed out while waiting for Dukascopy connection."
+                );
             }
+
             Thread.sleep(1000);
         }
     }
 
     private static String requiredEnv(String name) {
         String value = System.getenv(name);
+
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(
-                    "Required environment variable is missing: " + name);
+                    "Required environment variable is missing: " + name
+            );
         }
+
         return value;
     }
 }
